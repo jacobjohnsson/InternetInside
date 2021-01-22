@@ -1,19 +1,29 @@
 import digitalio, board, busio, adafruit_rfm9x
 
-RADIO_FREQ_MHZ = 868.
+class Station:
 
-CS = digitalio.DigitalInOut( board.CE1)
-RESET = digitalio.DigitalInOut( board.D25)
-spi = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
+    RADIO_FREQ_MHZ = 868.
 
-radio = adafruit_rfm9x.RFM9x( spi, CS, RESET, RADIO_FREQ_MHZ)
+    CS = digitalio.DigitalInOut( board.CE1)
+    RESET = digitalio.DigitalInOut( board.D25)
+    spi = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
 
-def main():
-    while True:
+    radio = adafruit_rfm9x.RFM9x( spi, CS, RESET, RADIO_FREQ_MHZ)
+
+    def __init__(self, behavior):
+        self.behavior = behavior
+
+    def do():
         packet = radio.receive()
         if packet != None:
             print("Echoing " + str(packet))
             radio.send(packet)
+
+def main():
+    station = Station()
+    while True:
+        station.do()
+
 
 if __name__ == "__main__":
     main()
