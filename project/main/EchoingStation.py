@@ -14,7 +14,7 @@ class EchoingStation:
     def __init__(self):
         pass
 
-    def do():
+    def do(self):
         packet = radio.receive()
         if packet != None:
             print("Echoing " + str(packet))
