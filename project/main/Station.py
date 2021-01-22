@@ -10,14 +10,14 @@ class Station:
 
     radio = adafruit_rfm9x.RFM9x( spi, CS, RESET, RADIO_FREQ_MHZ)
 
-    def __init__(self, behavior):
-        self.behavior = behavior
+    def __init__(self):
+        pass
 
-    def do():
-        packet = radio.receive()
+    def do(self):
+        packet = self.radio.receive()
         if packet != None:
             print("Echoing " + str(packet))
-            radio.send(packet)
+            self.radio.send(packet)
 
 def main():
     station = Station()
@@ -27,3 +27,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
