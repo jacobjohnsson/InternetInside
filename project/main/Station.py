@@ -10,7 +10,7 @@ radio = adafruit_rfm9x.RFM9x( spi, CS, RESET, RADIO_FREQ_MHZ)
 
 def main():
     while True:
-        fpacket = radio.receive()
+        packet = radio.receive()
         if packet != None:
             print("Echoing " + str(packet))
             radio.send(packet)
