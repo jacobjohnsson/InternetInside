@@ -10,8 +10,8 @@ class Station:
 
     radio = adafruit_rfm9x.RFM9x( spi, CS, RESET, RADIO_FREQ_MHZ)
 
-    def __init__(self, behavior):
-        self.behavior = behavior
+    def __init__(self):
+        pass
 
     def do():
         packet = radio.receive()
