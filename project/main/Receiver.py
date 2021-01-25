@@ -14,10 +14,10 @@ t0 = time.perf_counter()
 
 while(time.perf_counter() - t0 < 600):
 	packet = radio.receive()
-	rssi = radio.last_rssi
+	#rssi = radio.last_rssi
 	#print("Signal strength: " + str(rssi) + " dB")
 	if (packet != None):
 		counter += 1
-	#print(str(counter) + "\t[" + str(packet) + "]")
+	print(str(counter) + "\t[" + str(packet) + "]")
 
 print("Received " + str(counter) + " packages")

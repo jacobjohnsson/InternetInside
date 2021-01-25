@@ -20,10 +20,23 @@ station = Station(receiver, transmitter)
 station.setStrategy(BasicStrategy(receiver, transmitter))
 
 counter = 0
+received = 0
+i = 0
 t0 = time.perf_counter()
 
-while (time.perf_counter() - t0 < 595):
-	station.send("Hello world!")
-	counter += 1
+while (time.perf_counter() - t0 < 1800):
+    msg = "Hello world!"
+    b = bytearray()
+    b.extend(map(ord, msg))
+    station.send(msg)
+    response = station.receive()
+    if response != None:
+        received += 1
+        print(response)
+        if (b == response):
+	        counter += 1
+    i += 1
 
-print(counter)
+print("Messages sent: " + str(i) + 
+    "\nReceived : " + str(received) + 
+    "\nCorrect: " + str(counter))
