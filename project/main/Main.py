@@ -16,7 +16,7 @@ RESET = digitalio.DigitalInOut(board.D4)
 spi = busio.SPI(board.D21, MOSI=board.D20, MISO=board.D19)
 receiver = adafruit_rfm9x.RFM9x( spi, CS, RESET, RADIO_FREQ_MHZ)
 
-station = Station(receiver, transmitter)
+station = ThreadedStation(receiver, transmitter)
 station.setStrategy(BasicStrategy(receiver, transmitter))
 
 counter = 0
@@ -28,7 +28,7 @@ while (time.perf_counter() - t0 < 1800):
     msg = "Hello world!"
     b = bytearray()
     b.extend(map(ord, msg))
-    station.send(msg)
+    station.send(b)
     response = station.receive()
     if response != None:
         received += 1
