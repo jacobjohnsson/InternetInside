@@ -59,7 +59,7 @@ class ThreadedStation:
     def blocking_receive(self, queue):
         while True:
             print("[RX] Size of rx_queue: " + str(queue.qsize()))
-            message = self.receiver.receive()
+            message = self.receiver.receive(with_header=True)
             print("[RX] Received: " + str(message))
             self.rx_queue.put(message)
 
