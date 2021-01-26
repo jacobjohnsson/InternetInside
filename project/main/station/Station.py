@@ -26,21 +26,17 @@ class ThreadedStation:
     tx_queue = queue.Queue(64)
     rx_queue = queue.Queue(128)
 
-    def __init__(self, receiver: board, transmitter: board):
-        self.strategy = NoStrategy()
-
+    def __init__(self, receiver: board, transmitter: board, address: int):
+        self.address = address
         self.receiver = receiver
+        self.receiver.node = address
         self.rx_process = threading.Thread(target=self.blocking_receive, kwargs={'queue':self.rx_queue})
         self.rx_process.start()
 
         self.transmitter = transmitter
+        self.transmitter.node = address
         self.tx_process = threading.Thread(target=self.blocking_send, kwargs={'queue':self.tx_queue})
         self.tx_process.start()
-        
-    def setStrategy(self, strategy):
-        self.strategy = strategy
-        self.strategy.setReceiver(self.receiver)
-        self.strategy.setTransmitter(self.transmitter)
 
     def send(self, message):
         print("Adding \"" + str(message) + "\" to the tx_queue.")
