@@ -23,8 +23,8 @@ class Station:
 
 class ThreadedStation:
 
-    tx_queue = queue.Queue(64)
-    rx_queue = queue.Queue(128)
+    tx_queue = queue.Queue(32)
+    rx_queue = queue.Queue(64)
 
     def __init__(self, receiver: board, transmitter: board, address: int):
         self.address = address
@@ -38,30 +38,38 @@ class ThreadedStation:
         self.tx_process = threading.Thread(target=self.blocking_send, kwargs={'queue':self.tx_queue})
         self.tx_process.start()
 
-    def send(self, message):
-        print("Adding \"" + str(message) + "\" to the tx_queue.")
-        self.tx_queue.put(message)
-        # print("Size of queue: " + str(self.tx_queue.qsize()))
+    def shutdown(self):
+        self.receiver.reset()
+        self.transmitter.reset()
+        # Also kill threads
 
-    def receive(self) -> str:
-        return self.rx_queue.get()
-
-    def receive_timeout(self, timeout) -> str:
-        return self.rx_queue.get(timeout=timeout)
+    def send(self, message, dest):
+        self.tx_queue.put((message, dest))
 
     def blocking_send(self, queue):
         while True:
-            print("[TX] Size of tx_queue: " + str(queue.qsize()))
             message = self.tx_queue.get()
-            print("[TX] Sending " + str(message))
-            self.transmitter.send(message)
+            data = message[0]
+            dest = message[1]
+            self.transmitter.send(data, destination=dest)
+
+    def receive(self) -> str:
+        print("Receive-Size: " + str(self.rx_queue.qsize()))
+        return self.rx_queue.get()
+
+    def receive_timeout(self, timeout) -> str:
+        #print("Receive-Size: " + str(self.rx_queue.qsize()))
+        try:
+            return self.rx_queue.get(timeout=timeout)
+        except:
+            return None
 
     def blocking_receive(self, queue):
         while True:
-            print("[RX] Size of rx_queue: " + str(queue.qsize()))
             message = self.receiver.receive(with_header=True)
-            print("[RX] Received: " + str(message))
-            self.rx_queue.put(message)
+            if message != None:
+                self.rx_queue.put(message)
+
 
 class NoStrategy:
 
