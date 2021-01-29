@@ -3,8 +3,8 @@ import time
 
 from station.Station import *
 
-ADDRESS = 8
-DESTINATION = 7
+ADDRESS = 7
+DESTINATION = 8
 
 RADIO_FREQ_MHZ_1 = 866.
 RADIO_FREQ_MHZ_2 = 867.
@@ -28,20 +28,42 @@ received = 0
 i = 0
 t0 = time.perf_counter()
 
-messages = [("Hello from " + str(ADDRESS) + "! " + str(i)).encode("utf-8") for i in range(100)]
+TEST_SIZE = 40
 
-time.sleep(2)
+messages = [("Hello from " + str(ADDRESS) + "! " + str(i)) for i in range(TEST_SIZE)]
+encoded_messages = [s.encode("utf-8") for s in messages]
 
-while (counter < 100):
 
-    station.send(messages[counter], DESTINATION)
-    print("Sent: " + str(messages[counter]))
+time.sleep(3)
+
+while (counter < TEST_SIZE):
+
+    station.send(encoded_messages[counter], DESTINATION)
+    print("Sent: " + str(encoded_messages[counter]))
     counter += 1
     time.sleep(0.1)
 
 print("Sending is done, now receiving.")
 
-responses = [print(str(station.receive_timeout(0.1))) for i in range(counter)]
+
+#responses = [print(str(station.receive_timeout(2))) for i in range(counter)]
+packet_responses = [station.receive_timeout(0.5) for i in range(counter)]
+expected_responses = [("Hello from " + str(DESTINATION) + "! " + str(i)) for i in range(TEST_SIZE)]
+string_responses = [p[4:].decode("utf-8") for p in packet_responses if p != None]
+
+print('\n'.join(map(str, string_responses)))
+
+cut = set(expected_responses).difference(set(string_responses))
+
+print("Expected messages: ")
+print('\n'.join(map(str, expected_responses)))
+
+print("Responses: ")
+print('\n'.join(map(str, string_responses)))
+
+print("Weird Stuff: \n")
+print('\n'.join(map(str, cut)))
+
 
 #print("Messages sent: " + str(i) + 
 #    "\nReceived : " + str(received) + 
