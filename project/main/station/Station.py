@@ -1,7 +1,10 @@
 import board
-import queue
 import time
 import threading
+
+from multiprocessing import Queue, Process
+
+terminate_station = False
 
 class Station:
 
@@ -23,28 +26,31 @@ class Station:
 
 class ThreadedStation:
 
-    tx_queue = queue.Queue(32)
-    rx_queue = queue.Queue(64)
+    tx_queue = Queue(100)
+    rx_queue = Queue(200)
 
     def __init__(self, receiver: board, transmitter: board, address: int):
         self.address = address
         self.receiver = receiver
         self.receiver.node = address
-        self.rx_process = threading.Thread(target=self.blocking_receive, kwargs={'queue':self.rx_queue})
+        self.rx_process = Process(target=self.blocking_receive, kwargs={'queue':self.rx_queue})
         self.rx_process.start()
 
         self.transmitter = transmitter
         self.transmitter.node = address
-        self.tx_process = threading.Thread(target=self.blocking_send, kwargs={'queue':self.tx_queue})
+        self.tx_process = Process(target=self.blocking_send, kwargs={'queue':self.tx_queue})
         self.tx_process.start()
 
     def shutdown(self):
         self.receiver.reset()
         self.transmitter.reset()
-        # Also kill threads
+        terminate_station = True
+        self.rx_process.join()
+        self.tx_process.join()
 
     def send(self, message, dest):
         self.tx_queue.put((message, dest))
+        #print("SendQueue size: " + tx_queue.qsize())
 
     def blocking_send(self, queue):
         while True:
@@ -52,6 +58,8 @@ class ThreadedStation:
             data = message[0]
             dest = message[1]
             self.transmitter.send(data, destination=dest)
+            if terminate_station:       # A horrendous way to stop a thread...
+                break;
 
     def receive(self) -> str:
         print("Receive-Size: " + str(self.rx_queue.qsize()))
@@ -69,6 +77,8 @@ class ThreadedStation:
             message = self.receiver.receive(with_header=True)
             if message != None:
                 self.rx_queue.put(message)
+            if terminate_station:       # A horrendous way to stop a thread...
+                break;
 
 
 class NoStrategy:
