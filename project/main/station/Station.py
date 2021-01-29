@@ -62,7 +62,7 @@ class ThreadedStation:
                 break;
 
     def receive(self) -> str:
-        print("Receive-Size: " + str(self.rx_queue.qsize()))
+        #print("Receive-Size: " + str(self.rx_queue.qsize()))
         return self.rx_queue.get()
 
     def receive_timeout(self, timeout) -> str:
