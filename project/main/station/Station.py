@@ -26,8 +26,8 @@ class Station:
 
 class ThreadedStation:
 
-    tx_queue = Queue(100)
-    rx_queue = Queue(200)
+    tx_queue = Queue(200)
+    rx_queue = Queue(400)
 
     def __init__(self, receiver: board, transmitter: board, address: int):
         self.address = address

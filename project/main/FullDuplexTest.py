@@ -28,11 +28,10 @@ received = 0
 i = 0
 t0 = time.perf_counter()
 
-TEST_SIZE = 40
+TEST_SIZE = 40  # In nbr of packages
 
 messages = [("Hello from " + str(ADDRESS) + "! " + str(i)) for i in range(TEST_SIZE)]
 encoded_messages = [s.encode("utf-8") for s in messages]
-
 
 time.sleep(3)
 
@@ -41,7 +40,7 @@ while (counter < TEST_SIZE):
     station.send(encoded_messages[counter], DESTINATION)
     print("Sent: " + str(encoded_messages[counter]))
     counter += 1
-    time.sleep(0.1)
+    #time.sleep(0.1)
 
 print("Sending is done, now receiving.")
 
@@ -49,24 +48,24 @@ print("Sending is done, now receiving.")
 #responses = [print(str(station.receive_timeout(2))) for i in range(counter)]
 packet_responses = [station.receive_timeout(0.5) for i in range(counter)]
 expected_responses = [("Hello from " + str(DESTINATION) + "! " + str(i)) for i in range(TEST_SIZE)]
-string_responses = [p[4:].decode("utf-8") for p in packet_responses if p != None]
+string_responses = [p[4:].decode("utf-8", 'backslashreplace') for p in packet_responses if p != None]
 
 print('\n'.join(map(str, string_responses)))
 
 cut = set(expected_responses).difference(set(string_responses))
 
-print("Expected messages: ")
-print('\n'.join(map(str, expected_responses)))
+# print("Expected messages: ")
+# print('\n'.join(map(str, expected_responses)))
 
-print("Responses: ")
-print('\n'.join(map(str, string_responses)))
+# print("Responses: ")
+# print('\n'.join(map(str, string_responses)))
 
-print("Weird Stuff: \n")
+print("Missing stuff: \n")
 print('\n'.join(map(str, cut)))
 
 
-#print("Messages sent: " + str(i) + 
-#    "\nReceived : " + str(received) + 
-#    "\nCorrect: " + str(counter))
+print("\nMessages sent: " + str(TEST_SIZE) + 
+    "\nReceived : " + str(len(string_responses)) + 
+    "\nCorrect: " + str(TEST_SIZE - len(cut)))
 
 station.shutdown()
