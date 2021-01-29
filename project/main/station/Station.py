@@ -44,9 +44,8 @@ class ThreadedStation:
     def shutdown(self):
         self.receiver.reset()
         self.transmitter.reset()
-        terminate_station = True
-        self.rx_process.join()
-        self.tx_process.join()
+        self.rx_process.terminate()
+        self.tx_process.terminate()
 
     def send(self, message, dest):
         self.tx_queue.put((message, dest))
@@ -58,8 +57,6 @@ class ThreadedStation:
             data = message[0]
             dest = message[1]
             self.transmitter.send(data, destination=dest)
-            if terminate_station:       # A horrendous way to stop a thread...
-                break;
 
     def receive(self) -> str:
         #print("Receive-Size: " + str(self.rx_queue.qsize()))
@@ -77,8 +74,6 @@ class ThreadedStation:
             message = self.receiver.receive(with_header=True)
             if message != None:
                 self.rx_queue.put(message)
-            if terminate_station:       # A horrendous way to stop a thread...
-                break;
 
 
 class NoStrategy:
