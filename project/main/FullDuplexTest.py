@@ -26,7 +26,7 @@ station = ThreadedStation(receiver, transmitter, ADDRESS)
 counter = 0
 received = 0
 i = 0
-t0 = time.perf_counter()
+
 
 TEST_SIZE = 400  # In nbr of packages
 
@@ -34,16 +34,15 @@ messages = [("Hello from " + str(ADDRESS) + "! " + str(i) + " PADDINGPADDING") f
 encoded_messages = [s.encode("utf-8") for s in messages]
 
 time.sleep(3)
-
+t0 = time.perf_counter()
 while (counter < TEST_SIZE):
 
     station.send(encoded_messages[counter], DESTINATION)
     #print("Sent: " + str(encoded_messages[counter]))
     counter += 1
     #time.sleep(0.1)
-
+t1 = time.perf_counter()
 print("Sending is done, now receiving.")
-
 
 #responses = [print(str(station.receive_timeout(2))) for i in range(counter)]
 packet_responses = [station.receive_timeout(0.1) for i in range(counter)]
@@ -63,9 +62,13 @@ cut = set(expected_responses).difference(set(string_responses))
 print("Missing stuff: \n")
 print('\n'.join(map(str, cut)))
 
+total_bytes = 32 * TEST_SIZE - len(cut)
+bps = total_bytes / (t1 - t0)
 
-print("\nMessages sent: " + str(TEST_SIZE) + 
-    "\nReceived : " + str(len(string_responses)) + 
-    "\nCorrect: " + str(TEST_SIZE - len(cut)))
+print("Sendtime: \t" + str(t1 - t0) + " s" + 
+    "\nMessages sent: \t" + str(TEST_SIZE) + 
+    "\nReceived : \t" + str(len(string_responses)) + 
+    "\nCorrect: \t" + str(TEST_SIZE - len(cut)) + 
+    "\nBPS: \t" + str(bps) + " b/s")
 
 station.shutdown()
