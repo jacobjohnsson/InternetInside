@@ -3,18 +3,19 @@ import time
 
 from station.Station import *
 
-RADIO_FREQ_MHZ = 868.
+RADIO_FREQ_MHZ_1 = 866.
+RADIO_FREQ_MHZ_2 = 867.
 
 CS = digitalio.DigitalInOut(board.CE1)
 RESET = digitalio.DigitalInOut(board.D25)
 spi = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
-transmitter = adafruit_rfm9x.RFM9x( spi, CS, RESET, RADIO_FREQ_MHZ)
+transmitter = adafruit_rfm9x.RFM9x( spi, CS, RESET, RADIO_FREQ_MHZ_1)
 transmitter.tx_power = 5
 
 CS = digitalio.DigitalInOut(board.D17)
 RESET = digitalio.DigitalInOut(board.D4)
 spi = busio.SPI(board.D21, MOSI=board.D20, MISO=board.D19)
-receiver = adafruit_rfm9x.RFM9x( spi, CS, RESET, RADIO_FREQ_MHZ)
+receiver = adafruit_rfm9x.RFM9x( spi, CS, RESET, RADIO_FREQ_MHZ_1)
 receiver.tx_power = 5
 
 station = ThreadedStation(receiver, transmitter, 7)
@@ -25,7 +26,7 @@ received = 0
 i = 0
 t0 = time.perf_counter()
 
-while (time.perf_counter() - t0 < 60):
+while (time.perf_counter() - t0 < 100):
     msg = "Hello world!" + str(i)
     print("Sending: " + msg)
     b = bytearray()
