@@ -9,7 +9,7 @@ RADIO_FREQ_MHZ_2 = 867.
 CS = digitalio.DigitalInOut(board.CE1)
 RESET = digitalio.DigitalInOut(board.D25)
 spi = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
-transmitter = adafruit_rfm9x.RFM9x( spi, CS, RESET, RADIO_FREQ_MHZ_1)
+transmitter = adafruit_rfm9x.RFM9x( spi, CS, RESET, RADIO_FREQ_MHZ_2)
 transmitter.tx_power = 5
 
 CS = digitalio.DigitalInOut(board.D17)
@@ -26,7 +26,7 @@ received = 0
 i = 0
 t0 = time.perf_counter()
 
-while (time.perf_counter() - t0 < 100):
+while (time.perf_counter() - t0 < 10):
     msg = "Hello world!" + str(i)
     print("Sending: " + msg)
     b = bytearray()

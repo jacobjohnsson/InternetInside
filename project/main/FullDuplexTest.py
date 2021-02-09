@@ -28,7 +28,7 @@ received = 0
 i = 0
 
 
-TEST_SIZE = 400  # In nbr of packages
+TEST_SIZE = 1000  # In nbr of packages
 
 messages = [("Hello from " + str(ADDRESS) + "! " + str(i) + " PADDINGPADDING") for i in range(TEST_SIZE)]
 encoded_messages = [s.encode("utf-8") for s in messages]
@@ -40,7 +40,9 @@ while (counter < TEST_SIZE):
     station.send(encoded_messages[counter], DESTINATION)
     #print("Sent: " + str(encoded_messages[counter]))
     counter += 1
-    #time.sleep(0.1)
+
+while (station.tx_queue_size() != 0):
+    pass
 t1 = time.perf_counter()
 print("Sending is done, now receiving.")
 
@@ -65,10 +67,10 @@ print('\n'.join(map(str, cut)))
 total_bytes = 32 * TEST_SIZE - len(cut)
 bps = total_bytes / (t1 - t0)
 
-print("Sendtime: \t" + str(t1 - t0) + " s" + 
+print("Sendtime: \t{:2.2f}".format(t1-t0) + " s" + 
     "\nMessages sent: \t" + str(TEST_SIZE) + 
     "\nReceived : \t" + str(len(string_responses)) + 
     "\nCorrect: \t" + str(TEST_SIZE - len(cut)) + 
-    "\nBPS: \t" + str(bps) + " b/s")
+    "\nBPS: \t\t{:.2f}".format(bps) + " b/s")
 
 station.shutdown()
