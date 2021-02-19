@@ -2,6 +2,7 @@ import board
 import time
 import threading
 import pytun
+import socket
 
 from multiprocessing import Queue, Process
 
@@ -38,7 +39,7 @@ class UDPStation:
             message = self.tx_queue.get()
             data = message[0]
             dest = message[1]
-            self.tx_sock.sendto(data, ((self.RECEIVER_IP, self.UDP_PORT)))
+            self.tx_sock.sendto(data, (self.RECEIVER_IP, self.UDP_PORT))
 
     def receive(self) -> str:
         #print("Receive-Size: " + str(self.rx_queue.qsize()))
@@ -55,9 +56,9 @@ class UDPStation:
         while True:
             message, addr = self.rx_sock.recvfrom(1024)
             if message != None:
-                self.rx_queue.put(bytes(message[4:]))
-                self.tun.write(bytes(message[4:]))
-                print("Printing \t" + str(message) + " to tun.\n")
+                self.rx_queue.put(bytes(message))
+                self.tun.write(bytes(message))
+                print("Printing \n" + str(bytes(message)) + " to tun.\n")
 
     def tx_queue_size(self):
         return self.tx_queue.qsize()
@@ -115,7 +116,7 @@ class TunStation:
             if message != None:
                 self.rx_queue.put(message)
                 self.tun.write(bytes(message[4:]))
-                print("Printing " + str(message) + " to tun.\n")
+                print("Printing \n" + str(bytes(message[4:])) + " to tun.\n")
 
     def tx_queue_size(self):
         return self.tx_queue.qsize()
