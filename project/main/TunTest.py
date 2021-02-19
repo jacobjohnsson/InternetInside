@@ -34,12 +34,15 @@ tun.up()
 
 station = TunStation(receiver, transmitter, ADDRESS, tun)
 
-t0 = time.perf_counter()
 print("TunTest is up")
 
+x = []
+y = []
+pack_count = 0
+t0 = time.time()
 while True:
     packet = tun.read(tun.mtu)
-    print("Packet in tun: " + str(packet))
+    print("Packet in tun: \n" + str(packet))
     station.send(packet, DESTINATION)
 
 tun.down()
