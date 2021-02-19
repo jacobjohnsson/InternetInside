@@ -56,9 +56,12 @@ class UDPStation:
         while True:
             message, addr = self.rx_sock.recvfrom(1024)
             if message != None:
-                self.rx_queue.put(bytes(message))
+                #self.rx_queue.put(bytes(message))
+                #self.tun.write(bytes(message))
+                #print("Printing \n" + str(bytes(message)) + " to tun.\n")
                 self.tun.write(bytes(message))
-                print("Printing \n" + str(bytes(message)) + " to tun.\n")
+                self.rx_queue.put(bytes(message))
+                #print("Printing \t" + str(message) + " to tun.\n")
 
     def tx_queue_size(self):
         return self.tx_queue.qsize()
