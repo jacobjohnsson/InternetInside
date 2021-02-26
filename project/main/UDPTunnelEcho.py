@@ -36,7 +36,7 @@ tun.up()
 t0 = time.perf_counter()
 print("UDPEcho is up")
 
-RECEIVER_IP = "192.168.1.2" # Inuti07
+RECEIVER_IP = "192.168.1.6" # Inuti07
 MY_IP = "192.168.1.3"       # Inuti08
 UDP_PORT = 4000
 
