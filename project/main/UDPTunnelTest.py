@@ -6,6 +6,8 @@ import digitalio, board, busio, adafruit_rfm9x
 import time
 import socket
 import matplotlib.pyplot as plt
+import signal
+import sys
 
 from station.Station import *
 
@@ -38,7 +40,7 @@ t0 = time.perf_counter()
 print("UDPTest is up")
 
 RECEIVER_IP = "192.168.1.3" # Inuti08
-MY_IP = "192.168.1.2"       # Inuti07
+MY_IP = "192.168.1.6"       # Inuti07
 UDP_PORT = 4000
 
 tx_sock = socket.socket( socket.AF_INET,    # Internet
@@ -53,6 +55,21 @@ station = UDPStation(tun, tx_sock, rx_sock, RECEIVER_IP, UDP_PORT)
 
 x = []
 y = []
+
+def graceful_exit(sig, frame):
+    global x, y, station
+    print("Graceful exit.")
+    station.shutdown()
+    tun.down()
+    tun.close()
+
+    plt.plot(x, y)
+    plt.savefig("tmp.png")
+    print("TunTest is down")
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, graceful_exit)
+
 pack_count = 0
 t0 = time.time()
 while pack_count < 500:
@@ -70,3 +87,5 @@ station.shutdown()
 plt.plot(x, y)
 plt.savefig("tmp.png")
 print("TunTest is down")
+
+
