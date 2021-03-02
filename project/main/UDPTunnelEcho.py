@@ -5,6 +5,8 @@ import digitalio, board, busio, adafruit_rfm9x
 import time
 import pytun
 import socket
+import signal
+import sys
 
 from station.Station import *
 
@@ -50,6 +52,18 @@ rx_sock.bind((MY_IP, UDP_PORT))             # Bind to local network
 
 station = UDPStation(tun, tx_sock, rx_sock, RECEIVER_IP, UDP_PORT)
 
+def graceful_exit(sig, frame):
+    global station
+    print("Graceful exit.")
+    station.shutdown()
+    tun.down()
+    tun.close()
+
+    print("UDPEcho is down")
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, graceful_exit)
+
 while True:
     message = station.receive()
     
@@ -64,4 +78,4 @@ tun.down()
 tun.close()
 station.shutdown()
 
-print("TunEcho is down")
+print("UDPEcho is down")
