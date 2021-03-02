@@ -3,15 +3,17 @@ import time
 import threading
 import pytun
 import socket
+from functools import reduce
 
 from multiprocessing import Queue, Process
 
-terminate_station = False
+RADIO_MTU = 200
 
 class UDPStation:
 
     tx_queue = Queue(200)
     rx_queue = Queue(400)
+    IP_ID = 0
 
     def __init__(self, tun, tx_sock, rx_sock, RECEIVER_IP, UDP_PORT):
         self.tun = tun
@@ -37,9 +39,40 @@ class UDPStation:
     def blocking_send(self, queue):
         while True:
             message = self.tx_queue.get()
-            data = message[0]
+            ip_data = message[0]
             dest = message[1]
-            self.tx_sock.sendto(data, (self.RECEIVER_IP, self.UDP_PORT))
+            print("IP packet length: " + str(len(ip_data)))
+            
+            if len(ip_data) < RADIO_MTU:      # No fragmentation required, just add radio_header anyway ( package number 0 of 0)
+                current_id = 0
+                last_id = 0
+                radio_message = (str(current_id) + str(last_id) + str(bytes(self.IP_ID))).encode("utf-8") + ip_data
+                self.tx_sock.sendto(radio_message, (self.RECEIVER_IP, self.UDP_PORT))
+                
+            else:                               # Fragmentation required
+                radio_payloads = []
+                i = 0
+                while (i + 1 < len(ip_data) / RADIO_MTU):
+                    radio_payloads.append(ip_data[i * RADIO_MTU : (i + 1) * RADIO_MTU])
+                    i += 1
+                radio_payloads.append(ip_data[i * RADIO_MTU : len(ip_data)])
+
+                print("NBR OF PAYLOADS: " + str(len(radio_payloads)))
+                for payload in radio_payloads:
+                    print("PAYLOAD: " + str(payload))
+
+                current_id = 0
+                last_id = len(radio_payloads) - 1
+                for payload in radio_payloads:
+                    radio_message = (str(current_id) + str(last_id) + str(self.IP_ID)).encode("utf-8") + payload
+                    self.tx_sock.sendto(radio_message, (self.RECEIVER_IP, self.UDP_PORT))
+                    current_id += 1
+                    print("\n   RADIO_MESSAGE SENT:\n" + str(radio_message) + "\n")
+
+            self.IP_ID += 1
+            if self.IP_ID == 10:
+                self.IP_ID = 0
+
 
     def receive(self) -> str:
         #print("Receive-Size: " + str(self.rx_queue.qsize()))
@@ -55,11 +88,39 @@ class UDPStation:
     def blocking_receive(self, queue):
         while True:
             message, addr = self.rx_sock.recvfrom(1024)
-            if message != None:
-                self.rx_queue.put(bytes(message))
-                self.tun.write(bytes(message))
-                #print("Printing \t" + str(message) + " to tun.\n")
+            if message == None:
+                continue
+            
+            print("Size of tx_queue: " + str(self.tx_queue.qsize()))
+            print("Size of rx_queue: " + str(self.rx_queue.qsize()))
+            # print("Message[0]: " + str(chr(message[0])))
+            # print("Message: " + str(message))
 
+            if int(chr(message[1])) != 0:     # FRAGMENTS!
+                
+                fragment_nbr = int(chr(message[0]))
+                nbr_of_fragments = int(chr(message[1])) + 1
+                print("Total fragments: " + str(nbr_of_fragments))
+                print("Fragment nbr: " + str(fragment_nbr))
+                print("Fragment: " + str(message) + "\n")
+                fragments = [None] * nbr_of_fragments
+                fragments[fragment_nbr] = message[3: ]
+
+                i = 1
+                while (i < nbr_of_fragments):
+                    message, addr = self.rx_sock.recvfrom(1024)
+                    fragment_nbr = int(chr(message[0]))
+                    print("Fragment nbr: " + str(fragment_nbr))
+                    print("Fragment: " + str(message) + "\n")
+                    fragments[fragment_nbr] = message[3: ]
+                    i += 1
+
+                message = reduce((lambda x, y: x + y), fragments)
+
+            print("Printing \t" + str(message) + " to tun.\n")
+            self.rx_queue.put(bytes(message))
+            self.tun.write(bytes(message))
+                
     def tx_queue_size(self):
         return self.tx_queue.qsize()
 

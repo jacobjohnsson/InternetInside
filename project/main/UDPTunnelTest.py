@@ -40,7 +40,7 @@ t0 = time.perf_counter()
 print("UDPTest is up")
 
 RECEIVER_IP = "192.168.1.3" # Inuti08
-MY_IP = "192.168.1.6"       # Inuti07
+MY_IP = "192.168.1.2"       # Inuti07
 UDP_PORT = 4000
 
 tx_sock = socket.socket( socket.AF_INET,    # Internet
@@ -65,7 +65,7 @@ def graceful_exit(sig, frame):
 
     plt.plot(x, y)
     plt.savefig("tmp.png")
-    print("TunTest is down")
+    print("UDPTest is down")
     sys.exit(0)
 
 signal.signal(signal.SIGINT, graceful_exit)
@@ -86,6 +86,6 @@ station.shutdown()
 
 plt.plot(x, y)
 plt.savefig("tmp.png")
-print("TunTest is down")
+print("UDPTest is down")
 
 
