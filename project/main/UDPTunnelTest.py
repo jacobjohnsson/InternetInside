@@ -11,8 +11,8 @@ import sys
 
 from station.Station import *
 
-ADDRESS = 7
-DESTINATION = 8
+ADDRESS = 8
+DESTINATION = 7
 
 RADIO_FREQ_MHZ_1 = 866.
 RADIO_FREQ_MHZ_2 = 867.
@@ -30,17 +30,17 @@ receiver = adafruit_rfm9x.RFM9x( spi, CS, RESET, RADIO_FREQ_MHZ_1)
 receiver.tx_power = 5
 
 tun = pytun.TunTapDevice(name="LongG")
-tun.addr = "192.168.2.107"
+tun.addr = "192.168.2.108"
 tun.netmask = "255.255.255.0"
-tun.dstaddr = "192.168.2.108"
+tun.dstaddr = "192.168.2.107"
 tun.mtu = 1500
 tun.up()
 
 t0 = time.perf_counter()
 print("UDPTest is up")
 
-RECEIVER_IP = "192.168.1.3" # Inuti08
-MY_IP = "192.168.1.2"       # Inuti07
+RECEIVER_IP = "192.168.1.2" # Inuti07
+MY_IP = "192.168.1.3"       # Inuti08
 UDP_PORT = 4000
 
 tx_sock = socket.socket( socket.AF_INET,    # Internet
@@ -48,7 +48,7 @@ tx_sock = socket.socket( socket.AF_INET,    # Internet
 
 rx_sock = socket.socket( socket.AF_INET,    # Internet
                          socket.SOCK_DGRAM) # UDP
-
+rx_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 rx_sock.bind((MY_IP, UDP_PORT)) # Bind to local network
 
 station = UDPStation(tun, tx_sock, rx_sock, RECEIVER_IP, UDP_PORT)
