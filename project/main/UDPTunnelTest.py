@@ -39,8 +39,8 @@ tun.up()
 t0 = time.perf_counter()
 print("UDPTest is up")
 
-RECEIVER_IP = "192.168.1.2" # Inuti07
-MY_IP = "192.168.1.3"       # Inuti08
+RECEIVER_IP = "192.168.1.3" # Inuti08
+MY_IP = "192.168.1.2"       # Inuti07
 UDP_PORT = 4000
 
 tx_sock = socket.socket( socket.AF_INET,    # Internet
@@ -51,7 +51,7 @@ rx_sock = socket.socket( socket.AF_INET,    # Internet
 rx_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 rx_sock.bind((MY_IP, UDP_PORT)) # Bind to local network
 
-station = UDPStation(tun, tx_sock, rx_sock, RECEIVER_IP, UDP_PORT)
+station = UDPACKStation(tun, tx_sock, rx_sock, RECEIVER_IP, UDP_PORT)
 
 x = []
 y = []
@@ -74,7 +74,7 @@ pack_count = 0
 t0 = time.time()
 while pack_count < 500:
     packet = tun.read(tun.mtu)
-    print("Packet in tun: \n" + str(packet))
+    #print("Packet in tun: \n" + str(packet))
     station.send(packet, 8)
     pack_count += 1
     y.append(pack_count)
