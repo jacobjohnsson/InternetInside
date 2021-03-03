@@ -69,7 +69,7 @@ class UDPACKStation:
             current_id = 0
             last_id = len(radio_payloads) - 1
             for payload in radio_payloads:
-                radio_messages[current_id] = (DATA + str(current_id) + str(last_id) + str(self.IP_ID)).encode("utf-8") + payload
+                radio_messages.append((DATA + str(current_id) + str(last_id) + str(self.IP_ID)).encode("utf-8") + payload)
                 # self.tx_sock.sendto(radio_message, (self.RECEIVER_IP, self.UDP_PORT))
                 current_id += 1
                 # print("\n   RADIO_MESSAGE SENT:\n" + str(radio_message) + "\n")
