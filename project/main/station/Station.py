@@ -13,7 +13,7 @@ TIMEOUT = 1.0       # seconds
 MAX_WINDOW_SIZE = 4
 window = set()
 
-RADIO_MTU = 100
+RADIO_MTU = 70
 
 class UDPACKStation:
 
@@ -49,7 +49,7 @@ class UDPACKStation:
             message = self.tx_queue.get()
             ip_data = message[0]
             dest = message[1]
-            print("IP packet length: " + str(len(ip_data)))
+            print("\nIP packet length: " + str(len(ip_data)))
 
             radio_payloads = []
             i = 0
@@ -59,9 +59,7 @@ class UDPACKStation:
             radio_payloads.append(ip_data[i * RADIO_MTU : len(ip_data)])
             
             
-            print("NBR OF PAYLOADS: " + str(len(radio_payloads)))
-            for payload in radio_payloads:
-                print("PAYLOAD: " + str(payload))
+            
             
             #radio_message = (str(0) + str(0) + str(bytes(self.IP_ID))).encode("utf-8") + ip_data    
 
@@ -74,18 +72,23 @@ class UDPACKStation:
                 current_id += 1
                 # print("\n   RADIO_MESSAGE SENT:\n" + str(radio_message) + "\n")
 
+            print("NBR OF PAYLOADS: " + str(len(radio_messages)))
+            for payload in radio_messages:
+                print("HEADER + PAYLOAD: " + str(payload[0:20]) + "...")
+
             last_sent_pack = 0
             last_sent_pack_time = time.time()
+            print("WINDOW: ")
+            print(window)
             while len(window) < min(len(radio_messages), MAX_WINDOW_SIZE):
+                print("WINDOW: ")
+                print(window)
+                
 
                 self.tx_sock.sendto(radio_messages[last_sent_pack], (self.RECEIVER_IP, self.UDP_PORT))
                 last_sent_pack_time = time.time()
-                last_sent_pack += 1
                 window.add(last_sent_pack)
-
-
-
-
+                last_sent_pack += 1
 
 
 
