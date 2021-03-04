@@ -84,7 +84,7 @@ class UDPACKStation:
                 print("WINDOW: ")
                 print(window)
                 
-
+                print("SENDING: " + str(radio_messages[last_sent_pack]))
                 self.tx_sock.sendto(radio_messages[last_sent_pack], (self.RECEIVER_IP, self.UDP_PORT))
                 last_sent_pack_time = time.time()
                 window.add(last_sent_pack)
@@ -132,9 +132,10 @@ class UDPACKStation:
                 
             
 
+            elif int(chr(message[2])) != 0:     # FRAGMENTS!
+                t0 = time.time()
+                last_correct_pack = 0
 
-            if int(chr(message[2])) != 0:     # FRAGMENTS!
-                
                 fragment_nbr = int(chr(message[1]))
                 nbr_of_fragments = int(chr(message[2])) + 1
                 print("Total fragments: " + str(nbr_of_fragments))
@@ -145,9 +146,20 @@ class UDPACKStation:
 
                 i = 1
                 while (i < nbr_of_fragments):
+                    if (time.time() - t0) > TIMEOUT:
+                        reply = ACK + str(last_correct_pack).encode("utf-8")
+                        print("ACK: " + str(reply))
+                        self.tx_sock.sendto(ACK + str(last_correct_pack).encode("utf-8"), (self.RECEIVER_IP, self.UDP_PORT))
+                        
                     message, addr = self.rx_sock.recvfrom(1024)
                     fragment_nbr = int(chr(message[1]))
                     print("Fragment nbr: " + str(fragment_nbr))
+
+                    if fragment_nbr == last_correct_pack + 1:
+                        t0 = time.time()
+                        print("Correctly received fragment!")
+                        last_correct_pack += 1
+                    
                     print("Fragment: " + str(message) + "\n")
                     fragments[fragment_nbr] = message[4 : ]
                     i += 1
