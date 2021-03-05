@@ -5,15 +5,18 @@ import pytun
 import socket
 from functools import reduce
 
-from multiprocessing import Queue, Process
+from multiprocessing import Queue, Process, Lock
 
 ACK = '1'
 DATA = '0'
 TIMEOUT = 1.0       # seconds
 MAX_WINDOW_SIZE = 4
-window = set()
+window = Queue()
+window_lock = Lock()
+last_ack = -1
 
-RADIO_MTU = 70
+RADIO_DST = 7
+RADIO_MTU = 100
 
 class UDPACKStation:
 
@@ -25,6 +28,7 @@ class UDPACKStation:
         self.tun = tun
         self.tx_sock = tx_sock
         self.rx_sock = rx_sock
+        self.rx_sock.settimeout(TIMEOUT)
         self.RECEIVER_IP = RECEIVER_IP
         self.UDP_PORT = UDP_PORT
 
@@ -40,13 +44,32 @@ class UDPACKStation:
 
     def send(self, message, dest):
         self.tx_queue.put((message, dest))
-        #print("SendQueue size: " + tx_queue.qsize())
 
     def blocking_send(self, queue):
-        global ACK, DATA, TIMEOUT, MAX_WINDOW_SIZE
+        global ACK, DATA, TIMEOUT, MAX_WINDOW_SIZE, window, last_ack
 
         while True:
             message = self.tx_queue.get()
+            print("message[0]: " + str(message[0]))
+            print("message[0][0]: " + str(message[0][0]))
+            print("chr(message[0][0]): " + str(chr(message[0][0])))
+            if chr(message[0][0]) == ACK: 
+                print("Sending an ACK: " + str(message[0]))
+                self.tx_sock.sendto(message[0], (self.RECEIVER_IP, self.UDP_PORT))
+                continue
+            else:
+                print("Sending DATA: " + str(message[0]))
+                # print("message[0][5] = " + str(message[0][9]))
+                # if chr(message[0][5]) != '1': # only ICMP plz
+                #     continue
+            print("\t - - - - Sending Message - - - - \n\n" + str(message[0]) + "\n")
+
+            window_lock.acquire()
+            while not window.empty():
+                window.get()
+            print("Windows size: " + str(window.qsize()))
+            window_lock.release()
+
             ip_data = message[0]
             dest = message[1]
             print("\nIP packet length: " + str(len(ip_data)))
@@ -58,9 +81,7 @@ class UDPACKStation:
                 i += 1
             radio_payloads.append(ip_data[i * RADIO_MTU : len(ip_data)])
             
-            
-            
-            
+
             #radio_message = (str(0) + str(0) + str(bytes(self.IP_ID))).encode("utf-8") + ip_data    
 
             radio_messages = []     # including new fragment header
@@ -76,22 +97,34 @@ class UDPACKStation:
             for payload in radio_messages:
                 print("HEADER + PAYLOAD: " + str(payload[0:20]) + "...")
 
-            last_sent_pack = 0
+            last_sent_pack = -1
             last_sent_pack_time = time.time()
-            print("WINDOW: ")
-            print(window)
-            while len(window) < min(len(radio_messages), MAX_WINDOW_SIZE):
-                print("WINDOW: ")
-                print(window)
-                
-                print("SENDING: " + str(radio_messages[last_sent_pack]))
-                self.tx_sock.sendto(radio_messages[last_sent_pack], (self.RECEIVER_IP, self.UDP_PORT))
-                last_sent_pack_time = time.time()
-                window.add(last_sent_pack)
-                last_sent_pack += 1
 
 
+            while last_sent_pack < last_id:
+                while (window.qsize() < min(len(radio_messages), MAX_WINDOW_SIZE)) and last_sent_pack < last_id:
 
+                    print("SENDING: " + str(radio_messages[last_sent_pack + 1][0:20]) + "...")
+                    self.tx_sock.sendto(radio_messages[last_sent_pack + 1], (self.RECEIVER_IP, self.UDP_PORT))
+                    last_sent_pack_time = time.time()
+                    last_sent_pack += 1
+                    window_lock.acquire()
+                    window.put(last_sent_pack)
+                    window_lock.release()
+
+                # print("Window Complete, windows size: " + str(window.qsize()))
+                # time.sleep(0.1)
+
+                if last_sent_pack >= last_id and last_ack == last_id:
+                    print("loop broken")
+                    last_ack = -1
+                    window_lock.acquire()
+                    while not window.empty():
+                        window.get()
+                    window_lock.release()
+                    break
+
+            print("\t - - - - Message Sent - - - - \n\n")
 
 
             self.IP_ID += 1
@@ -111,25 +144,45 @@ class UDPACKStation:
             return None
 
     def blocking_receive(self, queue):
+        global ACK, DATA, TIMEOUT, MAX_WINDOW_SIZE, window, last_ack
         while True:
-            message, addr = self.rx_sock.recvfrom(1024)
+            try:
+                message, addr = self.rx_sock.recvfrom(1024)
+            except socket.timeout:
+                continue
+            
             if message == None:
                 continue
 
+            print("\t - - - - Incoming Message - - - - \n\n")
             print("Size of tx_queue: " + str(self.tx_queue.qsize()))
             print("Size of rx_queue: " + str(self.rx_queue.qsize()))
             # print("Message[0]: " + str(chr(message[0])))
-            # print("Message: " + str(message))
+            print("Message: " + str(message))
 
-            if message[0] == ACK:
+            if int(chr(message[0])) == int(ACK):
                 print("Got an ACK: " + str(message))
                 ack_number = message[1]
 
-                # Remove all messages with IDs lower than ack_number from window
-                for i in range(ack_number):
-                    window.discard(i)
+                last_ack = ack_number
 
+                # Remove all messages with IDs lower than ack_number from window
+                print("Discarding from window:")
+                window_lock.acquire()
+                for i in range(int(chr(ack_number)) + 3):
+                    if not window.empty():
+                        frag_number = window.get(0)
+                        print(frag_number)
+                window_lock.release()
                 
+                continue
+
+            elif int(chr(message[2])) == 0:     # No Fragments
+                message = message[4:]
+                ack = (ACK + str(0)).encode("utf-8")
+                print("Sending ACK!")
+                print("ACK: " + str(ack))
+                self.tx_sock.sendto((ACK + str(0)).encode("utf-8"), (self.RECEIVER_IP, self.UDP_PORT))
             
 
             elif int(chr(message[2])) != 0:     # FRAGMENTS!
@@ -138,6 +191,7 @@ class UDPACKStation:
 
                 fragment_nbr = int(chr(message[1]))
                 nbr_of_fragments = int(chr(message[2])) + 1
+                print("T_0: " + str(t0))
                 print("Total fragments: " + str(nbr_of_fragments))
                 print("Fragment nbr: " + str(fragment_nbr))
                 print("Fragment: " + str(message) + "\n")
@@ -145,26 +199,52 @@ class UDPACKStation:
                 fragments[fragment_nbr] = message[4: ]
 
                 i = 1
-                while (i < nbr_of_fragments):
-                    if (time.time() - t0) > TIMEOUT:
-                        reply = ACK + str(last_correct_pack).encode("utf-8")
-                        print("ACK: " + str(reply))
-                        self.tx_sock.sendto(ACK + str(last_correct_pack).encode("utf-8"), (self.RECEIVER_IP, self.UDP_PORT))
+                acked = False
+                message_received = False
+                while (not message_received) or (not acked):
+                    print("outer loop")
+                    acked = False
+                    t0 = time.time()
+                    #time.sleep(0.2)
+                    while i < nbr_of_fragments and time.time() < (t0 + TIMEOUT):
+
+                        try:
+                            message, addr = self.rx_sock.recvfrom(1024)
+                        except socket.timeout:
+                            continue
+
+                        fragment_nbr = int(chr(message[1]))
+                        print("Fragment nbr: " + str(fragment_nbr))
+
+                        if fragment_nbr == last_correct_pack + 1:
+                            t0 = time.time()
+                            print("Correctly received fragment!")
+                            last_correct_pack += 1
                         
-                    message, addr = self.rx_sock.recvfrom(1024)
-                    fragment_nbr = int(chr(message[1]))
-                    print("Fragment nbr: " + str(fragment_nbr))
+                        print("Fragment: " + str(message) + "\n")
+                        fragments[fragment_nbr] = message[4 : ]
+                        i += 1
 
-                    if fragment_nbr == last_correct_pack + 1:
-                        t0 = time.time()
-                        print("Correctly received fragment!")
-                        last_correct_pack += 1
+                    if time.time() > (t0 + TIMEOUT):
+                        ack = (ACK + str(last_correct_pack)).encode("utf-8")
+                        print("Sending ACK!")
+                        print("ACK: " + str(ack))
+                        self.send(ack, RADIO_DST)
+                        # self.tx_sock.sendto((ACK + str(last_correct_pack)).encode("utf-8"), (self.RECEIVER_IP, self.UDP_PORT))
+                        acked = True
                     
-                    print("Fragment: " + str(message) + "\n")
-                    fragments[fragment_nbr] = message[4 : ]
-                    i += 1
+                    if i == nbr_of_fragments: # Last fragment
+                        ack = (ACK + str(last_correct_pack)).encode("utf-8")
+                        print("Sending ACK!")
+                        print("ACK: " + str(ack))
+                        self.send(ack, RADIO_DST)
+                        # self.tx_sock.sendto((ACK + str(last_correct_pack)).encode("utf-8"), (self.RECEIVER_IP, self.UDP_PORT))
+                        acked = True
+                        print("Message fully received cuz: " + str(i) + "==" + str(nbr_of_fragments))
+                        message_received = True
 
-                message = reduce((lambda x, y: x + y), fragments)
+                print(fragments)
+                message = reduce(lambda x, y: x + y, fragments)
 
             print("Printing \t" + str(message) + " to tun.\n")
             self.rx_queue.put(bytes(message))
