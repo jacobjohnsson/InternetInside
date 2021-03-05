@@ -100,19 +100,6 @@ class UDPACKStation:
             last_sent_pack = -1
             last_sent_pack_time = time.time()
 
-
-            while last_sent_pack < last_id:
-                while (window.qsize() < min(len(radio_messages), MAX_WINDOW_SIZE)) and last_sent_pack < last_id:
-
-                    print("SENDING: " + str(radio_messages[last_sent_pack + 1][0:20]) + "...")
-                    self.tx_sock.sendto(radio_messages[last_sent_pack + 1], (self.RECEIVER_IP, self.UDP_PORT))
-                    last_sent_pack_time = time.time()
-                    last_sent_pack += 1
-                    window_lock.acquire()
-                    window.put(last_sent_pack)
-                    window_lock.release()
-
-                # print("Window Complete, windows size: " + str(window.qsize()))
                 # time.sleep(0.1)
 
                 if last_sent_pack >= last_id and last_ack == last_id:
@@ -158,7 +145,8 @@ class UDPACKStation:
             print("Size of tx_queue: " + str(self.tx_queue.qsize()))
             print("Size of rx_queue: " + str(self.rx_queue.qsize()))
             # print("Message[0]: " + str(chr(message[0])))
-            print("Message: " + str(message))
+            # print("Received message: " + message.decode("utf-8"))
+            print("int(chr(message[0])) = " + str(int(chr(message[0]))))
 
             if int(chr(message[0])) == int(ACK):
                 print("Got an ACK: " + str(message))
@@ -183,11 +171,10 @@ class UDPACKStation:
                 print("Sending ACK!")
                 print("ACK: " + str(ack))
                 self.tx_sock.sendto((ACK + str(0)).encode("utf-8"), (self.RECEIVER_IP, self.UDP_PORT))
-            
 
             elif int(chr(message[2])) != 0:     # FRAGMENTS!
                 t0 = time.time()
-                last_correct_pack = 0
+                last_correct_pack = 0           # Read from message, like line directly below?
 
                 fragment_nbr = int(chr(message[1]))
                 nbr_of_fragments = int(chr(message[2])) + 1
@@ -230,7 +217,7 @@ class UDPACKStation:
                         print("Sending ACK!")
                         print("ACK: " + str(ack))
                         self.send(ack, RADIO_DST)
-                        # self.tx_sock.sendto((ACK + str(last_correct_pack)).encode("utf-8"), (self.RECEIVER_IP, self.UDP_PORT))
+                        #self.tx_sock.sendto((ACK + str(last_correct_pack)).encode("utf-8"), (self.RECEIVER_IP, self.UDP_PORT))
                         acked = True
                     
                     if i == nbr_of_fragments: # Last fragment
