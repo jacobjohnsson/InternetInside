@@ -15,7 +15,7 @@ window = Queue()
 window_lock = Lock()
 last_ack = -1
 
-RADIO_DST = 7
+RADIO_DST = 8
 RADIO_MTU = 100
 
 class UDPACKStation:
@@ -44,26 +44,28 @@ class UDPACKStation:
 
     def send(self, message, dest):
         self.tx_queue.put((message, dest))
+        #print("SendQueue size: " + tx_queue.qsize())
 
     def blocking_send(self, queue):
         global ACK, DATA, TIMEOUT, MAX_WINDOW_SIZE, window, last_ack
 
         while True:
             message = self.tx_queue.get()
-            print("message[0]: " + str(message[0]))
-            print("message[0][0]: " + str(message[0][0]))
-            print("chr(message[0][0]): " + str(chr(message[0][0])))
+            # print("message[0]: " + str(message[0]))
+            # print("message[0][0]: " + str(message[0][0]))
+            # print("chr(message[0][0]): " + str(chr(message[0][0])))
             if chr(message[0][0]) == ACK: 
                 print("Sending an ACK: " + str(message[0]))
                 self.tx_sock.sendto(message[0], (self.RECEIVER_IP, self.UDP_PORT))
                 continue
             else:
-                print("Sending DATA: " + str(message[0]))
-                # print("message[0][5] = " + str(message[0][9]))
-                # if chr(message[0][5]) != '1': # only ICMP plz
-                #     continue
+                # print("Sending DATA: " + str(message[0]))
+                # print("message[0][2] = " + chr(message[0][2]))
+                if message[0][2] == 134: # only ICMP plz
+                    continue
             print("\t - - - - Sending Message - - - - \n\n" + str(message[0]) + "\n")
 
+            # Empty the window
             window_lock.acquire()
             while not window.empty():
                 window.get()
@@ -99,10 +101,26 @@ class UDPACKStation:
 
             last_sent_pack = -1
             last_sent_pack_time = time.time()
+            
+            
+            while last_sent_pack < last_id:
+                while (window.qsize() < min(len(radio_messages), MAX_WINDOW_SIZE)) and last_sent_pack < last_id:
+
+                    print("SENDING: " + str(radio_messages[last_sent_pack + 1][0:20]) + "...")
+                    self.tx_sock.sendto(radio_messages[last_sent_pack + 1], (self.RECEIVER_IP, self.UDP_PORT))
+                    last_sent_pack_time = time.time()
+                    last_sent_pack += 1
+                    window_lock.acquire()
+                    window.put(last_sent_pack)
+                    window_lock.release()
+
+                # print("Window Complete, windows size: " + str(window.qsize()))
+
 
                 # time.sleep(0.1)
 
                 if last_sent_pack >= last_id and last_ack == last_id:
+                    print("last_ack: " + str(last_ack))
                     print("loop broken")
                     last_ack = -1
                     window_lock.acquire()
@@ -132,6 +150,7 @@ class UDPACKStation:
 
     def blocking_receive(self, queue):
         global ACK, DATA, TIMEOUT, MAX_WINDOW_SIZE, window, last_ack
+
         while True:
             try:
                 message, addr = self.rx_sock.recvfrom(1024)
@@ -157,7 +176,7 @@ class UDPACKStation:
                 # Remove all messages with IDs lower than ack_number from window
                 print("Discarding from window:")
                 window_lock.acquire()
-                for i in range(int(chr(ack_number)) + 3):
+                for i in range(int(chr(ack_number)) + 1):
                     if not window.empty():
                         frag_number = window.get(0)
                         print(frag_number)
@@ -178,7 +197,6 @@ class UDPACKStation:
 
                 fragment_nbr = int(chr(message[1]))
                 nbr_of_fragments = int(chr(message[2])) + 1
-                print("T_0: " + str(t0))
                 print("Total fragments: " + str(nbr_of_fragments))
                 print("Fragment nbr: " + str(fragment_nbr))
                 print("Fragment: " + str(message) + "\n")
