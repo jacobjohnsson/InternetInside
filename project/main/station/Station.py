@@ -189,7 +189,8 @@ class UDPACKStation:
                 ack = (ACK + str(0)).encode("utf-8")
                 print("Sending ACK!")
                 print("ACK: " + str(ack))
-                self.tx_sock.sendto((ACK + str(0)).encode("utf-8"), (self.RECEIVER_IP, self.UDP_PORT))
+                self.send(ack, RADIO_DST)
+                # self.tx_sock.sendto((ACK + str(0)).encode("utf-8"), (self.RECEIVER_IP, self.UDP_PORT))
 
             elif int(chr(message[2])) != 0:     # FRAGMENTS!
                 t0 = time.time()
